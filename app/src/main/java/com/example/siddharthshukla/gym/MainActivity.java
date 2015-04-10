@@ -14,6 +14,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
@@ -23,6 +24,7 @@ import android.widget.Spinner;
 import android.widget.ListView;
 import android.widget.TextView;
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -64,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         new GetAllManagersTask().execute(new AppGetManager());
         try {
-            Thread.sleep(4000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -75,6 +77,17 @@ public class MainActivity extends ActionBarActivity {
         ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item, managerArray);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         e_manager.setAdapter(adapter);
+        e_manager.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                manager = parent.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                manager = "N.A.";
+            }
+        });
         final Button insert = (Button) findViewById(R.id.addCustomer);
         insert.setOnClickListener(new View.OnClickListener(){
             @Override
@@ -82,11 +95,16 @@ public class MainActivity extends ActionBarActivity {
                 firstName = e_firstName.getText().toString();
                 lastName = e_lastName.getText().toString();
                 contactNumber = e_contactNumber.getText().toString();
-                manager = e_manager.getSelectedItem().toString();
-                insert();
+                String detailsArr[] = {firstName, lastName, contactNumber, manager};
+                new InsertTask().execute(detailsArr);
+                e_firstName.setText("");
+                e_lastName.setText("");
+                e_contactNumber.setText("");
             }
         });
+
     }
+
     public void StoreManagersInArray(JSONArray jsonArray)
     {
         for(int i=0; i<jsonArray.length();i++){
@@ -100,56 +118,55 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    public void insert(){
-        ArrayList<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
-        nameValuePairs.add(new BasicNameValuePair("firstName", firstName));
-        nameValuePairs.add(new BasicNameValuePair("secondName", lastName));
-        nameValuePairs.add(new BasicNameValuePair("contactNumber", lastName));
-        nameValuePairs.add(new BasicNameValuePair("manager", manager));
-        try {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpPost httppost = new HttpPost("http://81.4.121.185/insertCustomers.php");
-            httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-            HttpResponse response = httpclient.execute(httppost);
-            HttpEntity entity = response.getEntity();
-            is = entity.getContent();
-            Log.e("pass 1", "connection success ");
-        }   catch(Exception e) {
-            Log.e("Fail 1", e.toString());
-            Toast.makeText(getApplicationContext(), "Invalid IP Address", Toast.LENGTH_LONG).show();
-        }
-        try {
-            BufferedReader reader = new BufferedReader
-                    (new InputStreamReader(is,"iso-8859-1"),8);
-            StringBuilder sb = new StringBuilder();
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line + "\n");
+    private class InsertTask extends AsyncTask<String[], Void, String>{
+        @Override
+        protected String doInBackground(String[]... params){
+            ArrayList<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
+            nameValuePairs.add(new BasicNameValuePair("firstName", firstName));
+            nameValuePairs.add(new BasicNameValuePair("secondName", lastName));
+            nameValuePairs.add(new BasicNameValuePair("contactNumber", lastName));
+            nameValuePairs.add(new BasicNameValuePair("manager", manager));
+            try {
+                HttpClient httpclient = new DefaultHttpClient();
+                HttpPost httppost = new HttpPost("http://81.4.121.185/insertCustomers.php");
+                httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
+                HttpResponse response = httpclient.execute(httppost);
+                HttpEntity entity = response.getEntity();
+                is = entity.getContent();
+                Log.e("pass 1", "connection success ");
+            }   catch(Exception e) {
+                Log.e("Fail 1", e.toString());
+                //Toast.makeText(getApplicationContext(), "Invalid IP Address", Toast.LENGTH_LONG).show();
             }
-            is.close();
-            result = sb.toString();
-            Log.e("pass 2", "connection success ");
-        }   catch(Exception e) {
-            Log.e("Fail 2", e.toString());
-            Toast.makeText(getApplicationContext(), "Connection failure", Toast.LENGTH_LONG).show();
+            try {
+                BufferedReader reader = new BufferedReader
+                        (new InputStreamReader(is,"iso-8859-1"),8);
+                StringBuilder sb = new StringBuilder();
+                while ((line = reader.readLine()) != null)
+                {
+                    sb.append(line + "\n");
+                }
+                is.close();
+                result = sb.toString();
+                Log.e("pass 2", "connection success ");
+            }   catch(Exception e) {
+                Log.e("Fail 2", e.toString());
+                //Toast.makeText(getApplicationContext(), "Connection failure", Toast.LENGTH_LONG).show();
+            }
+            try {
+                JSONObject json_data = new JSONObject(result);
+                code=(json_data.getInt("code"));
+                Log.e("Pass 3", "Insert successful... hopefully");
+            }   catch(Exception e) {
+                Log.e("Fail 3", e.toString());
+                //Toast.makeText(getApplicationContext(), "Oops...", Toast.LENGTH_LONG).show();
+            }
+            return "";
         }
-        try {
-            JSONObject json_data = new JSONObject(result);
-            code=(json_data.getInt("code"));
 
-            if(code==1)
-            {
-                Toast.makeText(getBaseContext(), "Inserted Successfully",
-                        Toast.LENGTH_SHORT).show();
-            }
-            else
-            {
-                Toast.makeText(getBaseContext(), "Sorry, Try Again",
-                        Toast.LENGTH_LONG).show();
-            }
-        }   catch(Exception e) {
-            Log.e("Fail 3", e.toString());
-            Toast.makeText(getApplicationContext(), "Oops...", Toast.LENGTH_LONG).show();
+        @Override
+        protected void onPostExecute(String manager) {
+
         }
     }
 
