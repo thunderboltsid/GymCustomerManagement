@@ -65,11 +65,6 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         new GetAllManagersTask().execute(new AppGetManager());
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         final EditText e_firstName = (EditText) findViewById(R.id.firstName);
         final EditText e_lastName = (EditText) findViewById(R.id.familyName);
         final EditText e_contactNumber = (EditText) findViewById(R.id.phoneNumber);
@@ -126,6 +121,7 @@ public class MainActivity extends ActionBarActivity {
             nameValuePairs.add(new BasicNameValuePair("secondName", lastName));
             nameValuePairs.add(new BasicNameValuePair("contactNumber", lastName));
             nameValuePairs.add(new BasicNameValuePair("manager", manager));
+
             try {
                 HttpClient httpclient = new DefaultHttpClient();
                 HttpPost httppost = new HttpPost("http://81.4.121.185/insertCustomers.php");
@@ -148,7 +144,7 @@ public class MainActivity extends ActionBarActivity {
                 }
                 is.close();
                 result = sb.toString();
-                Log.e("pass 2", "connection success ");
+                Log.e("pass 2", result);
             }   catch(Exception e) {
                 Log.e("Fail 2", e.toString());
                 //Toast.makeText(getApplicationContext(), "Connection failure", Toast.LENGTH_LONG).show();
@@ -156,7 +152,12 @@ public class MainActivity extends ActionBarActivity {
             try {
                 JSONObject json_data = new JSONObject(result);
                 code=(json_data.getInt("code"));
-                Log.e("Pass 3", "Insert successful... hopefully");
+                if (code == 1){
+                    Log.e("Pass 3", "Insert successful!");
+                }
+                else{
+                    Log.e("Fail 3", "Insert failed... Oops!");
+                }
             }   catch(Exception e) {
                 Log.e("Fail 3", e.toString());
                 //Toast.makeText(getApplicationContext(), "Oops...", Toast.LENGTH_LONG).show();
